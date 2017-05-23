@@ -14,15 +14,17 @@
 unsigned long SLEEP_TIME = 1000; // Sleep time between reads (in milliseconds)
 unsigned long DOOR_TIME = 10000;  // time to keep motor on to open or close the door (in milliseconds)
 
-int OPEN_DOOR_THRESHOLD = 60;  //TODO configure that !
-int CLOSE_DOOR_THRESHOLD = 40; //TODO configure that !
+const int OPEN_DOOR_THRESHOLD = 60;  //TODO configure that !
+const int CLOSE_DOOR_THRESHOLD = 40; //TODO configure that !
+
+const int batteryMinThreshold = 11900; // mV
 
 //MySensor gw;
 //MyMessage msg(CHILD_ID_LIGHT, V_LIGHT_LEVEL);
 int lastLightLevel;
 
 boolean isDoorOpen = false;
-boolean stopAll = false;
+
 
 Bounce debouncerDown = Bounce();
 Bounce debouncerUp = Bounce();
@@ -92,58 +94,82 @@ int getLightLevel() {
   return (1023 - analogRead(LIGHT_SENSOR_ANALOG_PIN)) / 10.23;
 }
 
+int getBatteryMilliVolt() {
+  //TODO check it is really A0
+  // ~12V-to-mersure=V1---R1---V2=A0---R2--- 0V
+  //R1=1M - R2=68K
+  //17.2 Max - 1.1 Ref
+  //V1 (volt) = V2*((R1+R2)/R2) = analogRead(A0)/1023*1.1*1068/68
+  // analogRead(A0) is 0 to 1023
+  long res = ((long)analogRead(A0)) * 1100L * 1068L / 1023L / 68L;
+  return (int)res;
+}
+
 void loop() {
-  
-  if (!stopAll) {
-    
-    debouncerUp.update();
-    debouncerDown.update();
-    
-    int lightLevel = getLightLevel();
-    Serial.println("----");
-    Serial.println(lightLevel);
 
-    //  int toto = digitalRead(8);
-    //  Serial.println(toto);
-
-
-    if (lightLevel != lastLightLevel) {
-      //gw.send(msg.set(lightLevel));
-      lastLightLevel = lightLevel;
-    }
-
-    if (lightLevel > OPEN_DOOR_THRESHOLD && !isDoorOpen) {
-      motorUp();
-      unsigned long st = millis();
-      while ((!contactUp()) && (millis() < (st + DOOR_TIME))) {
-      }
-
-      motorStop();
-      //gw.sleep(DOOR_TIME);
-      isDoorOpen = true;
-    }
-
-    if (lightLevel < CLOSE_DOOR_THRESHOLD && isDoorOpen) {
-      motorDown();
-      unsigned long st = millis();
-      boolean contactUpHasBeenReleaseOneTime = false;
-      while ((!contactDown()) && (millis() < (st + DOOR_TIME))) {
-        if ((contactUp() && contactUpHasBeenReleaseOneTime)) {
-          stopAll = true;
-          ledOn();
-          break;
-        }
-        if (!contactUp()) {
-          contactUpHasBeenReleaseOneTime = true;
-        }
-      }
-      //gw.sleep(DOOR_TIME);
-      motorStop();
-      isDoorOpen = false;
-    }
-
+  if (getBatteryMilliVolt() < batteryMinThreshold) {
+    ledOn();
   }
+
+
+  debouncerUp.update();
+  debouncerDown.update();
+
+  int lightLevel = getLightLevel();
+  Serial.println("----");
+  Serial.println(lightLevel);
+
+  //  int toto = digitalRead(8);
+  //  Serial.println(toto);
+
+
+  if (lightLevel != lastLightLevel) {
+    //gw.send(msg.set(lightLevel));
+    lastLightLevel = lightLevel;
+  }
+
+  if (lightLevel > OPEN_DOOR_THRESHOLD && !isDoorOpen) {
+    motorUp();
+    unsigned long st = millis();
+    while ((!contactUp()) && (millis() < (st + DOOR_TIME))) {
+    }
+
+    motorStop();
+    //gw.sleep(DOOR_TIME);
+    isDoorOpen = true;
+  }
+
+  if (lightLevel < CLOSE_DOOR_THRESHOLD && isDoorOpen) {
+    motorDown();
+    unsigned long st = millis();
+    boolean contactUpHasBeenReleaseOneTime = false;
+    while ((!contactDown()) && (millis() < (st + DOOR_TIME))) {
+      if ((contactUp() && contactUpHasBeenReleaseOneTime)) {
+        stopAllError();
+        ledOn();
+        break;
+      }
+      if (!contactUp()) {
+        contactUpHasBeenReleaseOneTime = true;
+      }
+    }
+    //gw.sleep(DOOR_TIME);
+    motorStop();
+    isDoorOpen = false;
+  }
+
+
   //gw.sleep(SLEEP_TIME);
   delay(SLEEP_TIME);
 
 }
+
+void stopAllError() {
+  while (true) {
+    ledOn();
+    delay(300);
+    ledOff();
+    delay(300);
+  }
+}
+
