@@ -12,10 +12,10 @@
 #define LIGHT_SENSOR_ANALOG_PIN A0
 
 unsigned long SLEEP_TIME = 1000; // Sleep time between reads (in milliseconds)
-unsigned long DOOR_TIME = 10000;  // time to keep motor on to open or close the door (in milliseconds)
+unsigned long DOOR_TIME = 150000;  // time to keep motor on to open or close the door (in milliseconds)
 
-const int OPEN_DOOR_THRESHOLD = 60;  //TODO configure that !
-const int CLOSE_DOOR_THRESHOLD = 40; //TODO configure that !
+const int OPEN_DOOR_THRESHOLD = 70;  //TODO configure that !
+const int CLOSE_DOOR_THRESHOLD = 2; //TODO configure that !
 
 const int batteryMinThreshold = 11900; // mV
 
@@ -67,8 +67,8 @@ void ledOff() {
 void motorStop() {
   //attention à choisir le mode repos des relais pour le moteur arreté
   // donc changer les branchements pas ce code, ni la valeur de RELAY_MINUS_MODE qui doit etre zero (?)
-  digitalWrite(RELAY_1_PIN, RELAY_MINUS_MODE);
-  digitalWrite(RELAY_2_PIN, RELAY_MINUS_MODE);
+  digitalWrite(RELAY_1_PIN, RELAY_PLUS_MODE);
+  digitalWrite(RELAY_2_PIN, RELAY_PLUS_MODE);
 }
 
 void motorUp() {
@@ -101,12 +101,15 @@ int getBatteryMilliVolt() {
   //17.2 Max - 1.1 Ref
   //V1 (volt) = V2*((R1+R2)/R2) = analogRead(A0)/1023*1.1*1068/68
   // analogRead(A0) is 0 to 1023
-  long res = ((long)analogRead(A0)) * 1100L * 1068L / 1023L / 68L;
+  long res = ((long)analogRead(A1)) * 1100L * 1068L / 1023L / 68L;
+  
   return (int)res;
+  
 }
 
 void loop() {
-
+Serial.println("batterie:");
+Serial.println(getBatteryMilliVolt());
   if (getBatteryMilliVolt() < batteryMinThreshold) {
     ledOn();
   }
@@ -116,8 +119,16 @@ void loop() {
   debouncerDown.update();
 
   int lightLevel = getLightLevel();
+while (true) {
+ lightLevel = getLightLevel();
   Serial.println("----");
   Serial.println(lightLevel);
+   }
+//Serial.println("UP----");
+ //Serial.println(contactUp());
+
+//Serial.println("DOWN----");
+ //Serial.println(contactDown());
 
   //  int toto = digitalRead(8);
   //  Serial.println(toto);
@@ -131,8 +142,14 @@ void loop() {
   if (lightLevel > OPEN_DOOR_THRESHOLD && !isDoorOpen) {
     motorUp();
     unsigned long st = millis();
+    
     while ((!contactUp()) && (millis() < (st + DOOR_TIME))) {
+//Serial.println("LOOP MOTOR UP----");
+//Serial.println(contactUp());
+ debouncerUp.update();
+  debouncerDown.update();
     }
+Serial.println("MOTOR STOP----");
 
     motorStop();
     //gw.sleep(DOOR_TIME);
@@ -144,6 +161,8 @@ void loop() {
     unsigned long st = millis();
     boolean contactUpHasBeenReleaseOneTime = false;
     while ((!contactDown()) && (millis() < (st + DOOR_TIME))) {
+       debouncerUp.update();
+  debouncerDown.update();
       if ((contactUp() && contactUpHasBeenReleaseOneTime)) {
         stopAllError();
         ledOn();
