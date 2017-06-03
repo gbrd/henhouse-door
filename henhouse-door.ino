@@ -55,6 +55,9 @@ void setup() {
 
   motorStop();
   ledOff();
+
+
+  analogReference(INTERNAL);
 }
 
 void ledOn() {
@@ -101,15 +104,17 @@ int getBatteryMilliVolt() {
   //17.2 Max - 1.1 Ref
   //V1 (volt) = V2*((R1+R2)/R2) = analogRead(A0)/1023*1.1*1068/68
   // analogRead(A0) is 0 to 1023
-  long res = ((long)analogRead(A1)) * 1100L * 1068L / 1023L / 68L;
-  
+
+  long res = ((long)analogRead(A1)) * 1100L / 1023L * 1068L  / 68L;
+
   return (int)res;
-  
+
 }
 
 void loop() {
-Serial.println("batterie:");
-Serial.println(getBatteryMilliVolt());
+  //Serial.println("batterie:");
+  //Serial.println(getBatteryMilliVolt());
+
   if (getBatteryMilliVolt() < batteryMinThreshold) {
     ledOn();
   }
@@ -119,16 +124,16 @@ Serial.println(getBatteryMilliVolt());
   debouncerDown.update();
 
   int lightLevel = getLightLevel();
-while (true) {
- lightLevel = getLightLevel();
-  Serial.println("----");
-  Serial.println(lightLevel);
-   }
-//Serial.println("UP----");
- //Serial.println(contactUp());
+  while (true) {
+    lightLevel = getLightLevel();
+    Serial.println("----");
+    Serial.println(lightLevel);
+  }
+  //Serial.println("UP----");
+  //Serial.println(contactUp());
 
-//Serial.println("DOWN----");
- //Serial.println(contactDown());
+  //Serial.println("DOWN----");
+  //Serial.println(contactDown());
 
   //  int toto = digitalRead(8);
   //  Serial.println(toto);
@@ -142,14 +147,14 @@ while (true) {
   if (lightLevel > OPEN_DOOR_THRESHOLD && !isDoorOpen) {
     motorUp();
     unsigned long st = millis();
-    
+
     while ((!contactUp()) && (millis() < (st + DOOR_TIME))) {
-//Serial.println("LOOP MOTOR UP----");
-//Serial.println(contactUp());
- debouncerUp.update();
-  debouncerDown.update();
+      //Serial.println("LOOP MOTOR UP----");
+      //Serial.println(contactUp());
+      debouncerUp.update();
+      debouncerDown.update();
     }
-Serial.println("MOTOR STOP----");
+    Serial.println("MOTOR STOP----");
 
     motorStop();
     //gw.sleep(DOOR_TIME);
@@ -161,8 +166,8 @@ Serial.println("MOTOR STOP----");
     unsigned long st = millis();
     boolean contactUpHasBeenReleaseOneTime = false;
     while ((!contactDown()) && (millis() < (st + DOOR_TIME))) {
-       debouncerUp.update();
-  debouncerDown.update();
+      debouncerUp.update();
+      debouncerDown.update();
       if ((contactUp() && contactUpHasBeenReleaseOneTime)) {
         stopAllError();
         ledOn();
