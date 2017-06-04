@@ -26,6 +26,14 @@ int lastLightLevel;
 
 boolean isDoorOpen = false;
 
+boolean isInBeforeOpenDelay = false;
+unsigned long openDelayedStartDate = 0L;
+const unsigned long beforeOpenDelay = 30L * 60L * 1000L; // 30 min in milliseconds
+
+boolean isInBeforeCloseDelay = false;
+unsigned long closeDelayedStartDate = 0L;
+const unsigned long beforeCloseDelay = 30L * 60L * 1000L; // 30 min in milliseconds
+
 
 Bounce debouncerDown = Bounce();
 Bounce debouncerUp = Bounce();
@@ -145,43 +153,73 @@ void loop() {
     lastLightLevel = lightLevel;
   }
 
+
+
+
+
+
   if (lightLevel > OPEN_DOOR_THRESHOLD && !isDoorOpen) {
-    motorUp();
-    unsigned long st = millis();
+    if (!isInBeforeOpenDelay ) {
+      isInBeforeOpenDelay = true;
+      openDelayedStartDate = millis();
+    } else if (millis() - openDelayedStartDate > beforeOpenDelay) {
+      isInBeforeOpenDelay = false;
+      //reallyOpenDoor
 
-    while ((!contactUp()) && (millis() < (st + DOOR_TIME))) {
-      //Serial.println("LOOP MOTOR UP----");
-      //Serial.println(contactUp());
-      debouncerUp.update();
-      debouncerDown.update();
+
+      motorUp();
+      unsigned long st = millis();
+
+      while ((!contactUp()) && (millis() < (st + DOOR_TIME))) {
+        //Serial.println("LOOP MOTOR UP----");
+        //Serial.println(contactUp());
+        debouncerUp.update();
+        debouncerDown.update();
+      }
+      Serial.println("MOTOR STOP----");
+
+      motorStop();
+      //gw.sleep(DOOR_TIME);
+      isDoorOpen = true;
+
+
+
     }
-    Serial.println("MOTOR STOP----");
-
-    motorStop();
-    //gw.sleep(DOOR_TIME);
-    isDoorOpen = true;
   }
+
 
   if (lightLevel < CLOSE_DOOR_THRESHOLD && isDoorOpen) {
-    motorDown();
-    unsigned long st = millis();
-    boolean contactUpHasBeenReleaseOneTime = false;
-    while ((!contactDown()) && (millis() < (st + DOOR_TIME))) {
-      debouncerUp.update();
-      debouncerDown.update();
-      if ((contactUp() && contactUpHasBeenReleaseOneTime)) {
-        stopAllError();
-        ledOn();
-        break;
+    if (!isInBeforeCloseDelay ) {
+      isInBeforeCloseDelay = true;
+      closeDelayedStartDate = millis();
+    } else if (millis() - closeDelayedStartDate > beforeCloseDelay) {
+      isInBeforeCloseDelay = false;
+
+
+      //reallyCloseDoor();
+      motorDown();
+      unsigned long st = millis();
+      boolean contactUpHasBeenReleaseOneTime = false;
+      while ((!contactDown()) && (millis() < (st + DOOR_TIME))) {
+        debouncerUp.update();
+        debouncerDown.update();
+        if ((contactUp() && contactUpHasBeenReleaseOneTime)) {
+          stopAllError();
+          ledOn();
+          break;
+        }
+        if (!contactUp()) {
+          contactUpHasBeenReleaseOneTime = true;
+        }
       }
-      if (!contactUp()) {
-        contactUpHasBeenReleaseOneTime = true;
-      }
+      //gw.sleep(DOOR_TIME);
+      motorStop();
+      isDoorOpen = false;
+
+
     }
-    //gw.sleep(DOOR_TIME);
-    motorStop();
-    isDoorOpen = false;
   }
+
 
 
   //gw.sleep(SLEEP_TIME);
