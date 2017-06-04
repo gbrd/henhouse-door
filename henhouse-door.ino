@@ -10,6 +10,7 @@
 #define DOOR_UP_CONTACT_PIN 5
 #define DOOR_DOWN_CONTACT_PIN 6
 #define LIGHT_SENSOR_ANALOG_PIN A0
+#define BATTERY_VOLTAGE_ANALOG_PIN A1
 
 unsigned long SLEEP_TIME = 1000; // Sleep time between reads (in milliseconds)
 unsigned long DOOR_TIME = 150000;  // time to keep motor on to open or close the door (in milliseconds)
@@ -105,7 +106,7 @@ int getBatteryMilliVolt() {
   //V1 (volt) = V2*((R1+R2)/R2) = analogRead(A0)/1023*1.1*1068/68
   // analogRead(A0) is 0 to 1023
 
-  long res = ((long)analogRead(A1)) * 1100L / 1023L * 1068L  / 68L;
+  long res = ((long)analogRead(BATTERY_VOLTAGE_ANALOG_PIN)) * 1100L / 1023L * 1068L  / 68L;
 
   return (int)res;
 
