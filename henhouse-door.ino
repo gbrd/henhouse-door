@@ -186,6 +186,10 @@ void loop() {
 
     }
   }
+  if(lightLevel <= OPEN_DOOR_THRESHOLD){
+    isInBeforeOpenDelay = false;
+  }
+  
 
 
   if (lightLevel < CLOSE_DOOR_THRESHOLD && isDoorOpen) {
@@ -218,6 +222,9 @@ void loop() {
 
 
     }
+  }
+  if(lightLevel >= CLOSE_DOOR_THRESHOLD){
+    isInBeforeCloseDelay = false;
   }
 
 
